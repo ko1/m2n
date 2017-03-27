@@ -1,0 +1,104 @@
+#-*-ruby-*-
+
+###########################################################
+###
+### m2n configuration file
+###
+##
+## This file should be copied to "~/.m2n/m2nrc".
+##
+
+###########################################################
+# setting
+
+MAILDIR   = '~/Maildir'
+LOG_FILE  = "~/.m2n/#{Time.now.strftime('%Y-%m-%d')}.log"
+SMTP_HOST = 'localhost'
+SMTP_PORT = 25
+
+###########################################################
+# rules
+
+# spam
+rule_mv('X-Spam', /yes/, '/Junk/spams-todo')
+# if you want to discard spam mail, use follow:
+#   rule_discard('X-Spam', /yes/)
+
+# original rule example (add ML sig/no)
+rule_mv('X-ML-Name', /ruby-(core|talk)/){|mail|
+  mail['Subject'] = "[#{mail['X-ML-Name']}:#{mail['X-Mail-Count']}] #{mail['Subject']}"
+  mail.commit
+}
+
+# ML
+rule_mv('X-ML-Name',  /.+/,  "/ml/${h}")
+rule_mv('List-Id',    /\<(.+)\>/,  "/ml/${1}")
+rule_mv('List-Id',    /.+/,  "/ml/${h}")
+rule_mv('X-Loop',     /.+/,  "/ml/${h}")
+rule_mv('X-Sequence', /(\S+)\s/, "/ml/${1}")
+rule_mv('List-Post',  /\<mailto:(.+)\>/, "/ml/${1}")
+
+# specific rule
+rule_mv(['To', 'Cc', 'From'], /foo@example/,   '/foo-box')
+
+
+#######
+=begin
+
+= m2n (Mail ni Nankasuru) configuration file description
+
+== default rules
+
+  # move to Maildir folder
+  rule_mv(header, pattern, folder)  # move to ~/Maildir/folder/new
+  rule_mv(header, pattern)          # move to ~/Maildir/${h}/new
+  rule_mv()                         # move to ~/Maildir/new
+
+  # discard a mail
+  rule_discard(header, pattern)
+
+  # invoke block.
+  rule(header, pattern){|mail| ...}
+  rule(){|mail| ...}                        # match any mail
+
+  # if block return :through, continue next rule.
+  rule(){|mail|
+    log(mail['Subject'])
+    :through
+  }
+
+  rule(){|mail|
+    if system("spamcheck #{mail.path}") == 1
+      mail.discard
+    else
+      :through
+    end
+  }
+
+  # custom rules are made by rule().  e.g:
+  def rule_mv header, pattern, folder = "${h}"
+    rule(header, pattern){|mail|
+      mail.move_to(folder)
+    }
+  end
+
+  def rule_dicard header, pattern
+    rule(header, pattern){|mail|
+      mail.discard
+    }
+  end
+
+
+* rule() matchs any mail
+
+== folder name
+
+* 'folder' parmeter can include ${<c>} format 
+
+<c>:
+* h  : mail['header']
+* 0-9: (pattern =~ mail['header']; $~[c])
+
+=end
+
+
