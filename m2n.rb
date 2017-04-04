@@ -111,7 +111,7 @@ module M2N
         @file = "#{Time.now.to_i}.#{$$}.#{hostname}"
         @temp = Tempfile.open(@file)
         @path = @temp.path
-        @temp.write(body = STDIN.readlines)
+        @temp.write((body = STDIN.readlines).join)
         @temp.close
       end
 
