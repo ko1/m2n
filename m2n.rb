@@ -79,7 +79,15 @@ module M2N
             # return true if $m2n_test
             mail.search_header = h
             mail.search_result = match
-            return @block.call(mail) != :through
+
+            case @block.call(mail)
+            when :through
+              mail.search_header = nil
+              mail.search_result = nil
+              return false
+            else
+              return true
+            end
           end
         }
       else
@@ -120,7 +128,7 @@ module M2N
       @body = []
 
       begin
-        while line = body.shift
+        while line = body.shift.scrub
           next if /^From / =~ line # skip From-line
           break if /^$/=~line	   # end of header
           if /^(\S+?):\s*(.*)/ =~ line
